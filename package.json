@@ -1,0 +1,24 @@
+{
+  "name": "termflix",
+  "version": "0.1.0",
+  "description": "Search and stream video torrents from your command line!",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "torrent",
+    "video",
+    "cli"
+  ],
+  "author": "asarode",
+  "license": "MIT",
+  "preferGlobal": true,
+  "bin": {
+    "termflix": "index.js"
+  },
+  "dependencies": {
+    "inquirer": "^0.8.4",
+    "thepiratebay": "^0.2.1",
+    "torrent-stream": "^0.19.0"
+  }
+}
