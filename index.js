@@ -6,22 +6,21 @@
 var torStream 	= require('torrent-stream');
 var tpb 		= require('thepiratebay');
 var spawn 		= require('child_process').spawn;
-var inquirer 	= require("inquirer");
+var inquirer 	= require('inquirer');
+var program 	= require('commander');
+var path 		= require('path');
+var pkg 		= require( path.join(__dirname, 'package.json') );
+
 
 // ==============================
 // VARIABLES
 // ==============================
-var sortEnum = {
-	NAME_DEC: '1',
-	NAME_ACS: '2',
-	DATE_DESC: '3',
-	DATE_ASC: '4',
-	SIZE_DECS: '5',
-	SIZE_ASC: '6',
-	SEEDS_DESC: '7',
-	SEEDS_ASC: '8',
-	LEECHES_DESC: '9',
-	LEECHED_ASC: '10'
+var orderEnum = {
+	NAME: '1',
+	DATE: '3',
+	SIZE: '5',
+	SEEDS: '7',
+	LEECHES: '9'
 }
 
 var argEnum = {
@@ -29,28 +28,9 @@ var argEnum = {
 	SEARCH: '1'
 }
 
-var torrentList = [];
-
 // ==============================
-// HELPER FUNCTIONS
+// FUNCTIONS
 // ==============================
-
-/*
- * @param: args - the arguments the user entered
- * @return: the enum for the type of function to execute
- * Finds whether the user entered a magnet link or is searching for
- * a list of torrents with a query
- */
-function findArgType(args) {
-	for (var i = 0; i < userArgs.length; i++) {
-		if (userArgs[i].indexOf('magnet:?xt=urn:btih:') == 0) {
-			return argEnum.MAGNET;
-		}
-	}
-
-	return argEnum.SEARCH;
-}
-
 /*
  * @param: args - the arguments the user entered
  * Starts streaming the torrent using peerflix
@@ -62,37 +42,81 @@ function playMagnet(args) {
 }
 
 /*
+ * @param: magnet - a magnet link for a torrent
+ * @param: options - an options object
+ * Starts streaming the torrent form a magnet link and passes
+ * any options off to the playMagnet function
+ */
+function playCommand(magnet, options) {
+	var ops = options.parent.rawArgs.splice(4);
+	var playArgs = [magnet];
+	ops.forEach(function(op) {
+		playArgs.push(op);
+	});
+	playMagnet(playArgs);
+}
+
+/*
  * @param: query - the search query the user entered
- * @param: queryParams - an array with [query, category, orderBy] info
+ * @param: options - an options object
  * Searches the pirate bay for videos with the given query and returns
  * a list of torrent objects
  */
-function searchForTorrents(args) {
-	var _query = args[0];
-	var _category = args[1] || '200';
-	var _orderBy = args[2] || sortEnum.SEEDS_DESC;
+function searchCommand(query, options) {
+	var torrentHash = [];
+	var torrentInfos = [];
+	var orderBy = options.order;
+	var order;
+	var infoField;
 
-	tpb.search(_query, {
-		category: _category,
-		orderBy: _orderBy
+	switch (orderBy) {
+		case 'name':
+			order = orderEnum.NAME;
+			infoField = 'seeders';
+			break;
+		case 'date':
+			order = orderEnum.DATE;
+			infoField = 'uploadDate';
+			break;
+		case 'size':
+			order = orderEnum.SIZE;
+			infoField = 'size';
+			break;
+		case 'seeds':
+			order = orderEnum.SEEDS;
+			infoField = 'seeders';
+			break;
+		case 'leeches':
+			order = orderEnum.LEECHES;
+			infoField = 'leechers';
+			break;
+		default:
+			order = orderEnum.SEEDS;
+			infoField = 'seeders';
+	}
+
+	tpb.search(query, {
+		category: 200,
+		orderBy: order
 	}, function(err, results) {
 		if (err) {
 			console.log(err);
 		} else {
 			results.forEach(function(result, i, results) {
-				torrentList[result.name] = result.magnetLink;
-			}); 
-
+				torrentHash[result.name] = result.magnetLink;
+				torrentInfos.push(result.name + ' :: ' + result[infoField]);
+			});
 			inquirer.prompt([
 				{
 					type: 'list',
 					name: 'title',
 					message: 'Which torrent do you want to stream?',
-					choices: results
+					choices: torrentInfos
 				}
 			], function(answer) {
-				// console.log(torrentList[answer.title]);
-				playMagnet([torrentList[answer.title], '--vlc']);
+				var title = answer.title;
+				var titleSubstring = title.substring(0, title.indexOf(' :: '));
+				playMagnet([torrentHash[titleSubstring], '--vlc']);
 			});
 		}
 	});
@@ -101,15 +125,25 @@ function searchForTorrents(args) {
 // ==============================
 // LOGIC
 // ==============================
-var userArgs = process.argv.splice(2);
+program
+	.version('0.0.1');
 
-var argType = findArgType(userArgs);
+program
+	.command('play [magnet]')
+	.description('stream a torrent file with the given magnet link')
+	.option('-v, --vlc', 'open the torrent stream with vlc player')
+	.action(function(magnet, options) {
+		playCommand(magnet, options);
+	});
+program
+	.command('search [query]')
+	.description('search the pirate bay with a query')
+	.option('-o, --order [orderBy]', 
+		'order results by a given field:' +
+		'seeds (default) | name | date | size | leeches')
+	.action(function(query, options) {
+		searchCommand(query, options);
+	});
 
-if (argType == argEnum.MAGNET) {
-	console.log('SETTING UP TORRENT STREAM');
-	playMagnet(userArgs);
-} else if (argType == argEnum.SEARCH) {
-	console.log('SEARCHING FOR TORRENTS');
-	searchForTorrents(userArgs);
-}
+program.parse(process.argv);
 
