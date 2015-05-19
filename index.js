@@ -80,17 +80,20 @@ function searchForTorrents(args) {
 			console.log(err);
 		} else {
 			results.forEach(function(result, i, results) {
-				torrentList.push(result.name);
+				torrentList[result.name] = result.magnetLink;
 			}); 
 
 			inquirer.prompt([
 				{
 					type: 'list',
-					name: 'Torrents',
+					name: 'title',
 					message: 'Which torrent do you want to stream?',
-					choices: torrentList
+					choices: results
 				}
-			]);
+			], function(answer) {
+				// console.log(torrentList[answer.title]);
+				playMagnet([torrentList[answer.title], '--vlc']);
+			});
 		}
 	});
 }
