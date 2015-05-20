@@ -9,9 +9,10 @@ If you don't have peerflix, do `npm install peerflix -g`, otherwise it's just a 
 
 ## Usage
 ####`termflix play [magnet] --vlc`
-Just pass in a magnet link to a torrent and it'll start streaming to your VLC player. Here's an example magnet link to try it out: magnet:?xt=urn:btih:31ff6c7f8af99bdbc2d5f022367bc6b85bd613ee
+Just pass in a magnet link to a torrent and it'll start streaming to your VLC player. Here's an example magnet link to try it out: `magnet:?xt=urn:btih:31ff6c7f8af99bdbc2d5f022367bc6b85bd613ee`
 
-You can include the full magnet link and it'll work too. For example, something like: magnet:?xt=urn:btih:31ff6c7f8af99bdbc2d5f022367bc6b85bd613eedn=Ex+Machina+%282015%29+1080p+BrRip+x264+-+YIFYtr=udp%3A%2F%2Ftr…0tr=udp%3A%2F%2Fopen.demonii.com%3A1337tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969tr=udp%3A%2F%2Fexodus.desync.com%3A6969
+You can include the full magnet link and it'll work too. For example, something like:
+`magnet:?xt=urn:btih:31ff6c7f8af99bdbc2d5f022367bc6b85bd613eedn=Ex+Machina+%282015%29+1080p+BrRip+x264+-+YIFYtr=udp%3A%2F%2Ftr…0tr=udp%3A%2F%2Fopen.demonii.com%3A1337tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969tr=udp%3A%2F%2Fexodus.desync.com%3A6969`
 
 ####`termflix search [query] --order [orderBy]`
 You can use this to search the pirate bay for torrents. A list of torrents will come up and you can just hit enter on one of them to open the stream in VLC. You can use the --order option to order the results. The valid orderBy options are 'seeds' (default), 'name', 'date', 'size', 'leeches'.
