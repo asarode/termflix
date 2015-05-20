@@ -11,12 +11,25 @@ var program 	= require('commander');
 // ==============================
 // VARIABLES
 // ==============================
+/*
+ * value of each key corresponds to tpb search query options
+ * 1 - name descending
+ * 2 - name ascending
+ * 3 - date descending
+ * 4 - date ascending
+ * 5 - size descending
+ * 6 - size ascending
+ * 7 - seeds descending
+ * 8 - seeds ascending
+ * 9 - leeches descending
+ * 10 - leeches ascending
+ */
 var orderEnum = {
 	NAME: '1',
-	DATE: '3',
+	DATE: '4',
 	SIZE: '5',
 	SEEDS: '7',
-	LEECHES: '9'
+	LEECHES: '10'
 }
 
 var argEnum = {
