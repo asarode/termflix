@@ -2,10 +2,10 @@
 Search and stream torrents from your command line.
 
 ## Requirements
-You'll need to have [VLC](http://www.videolan.org/vlc/index.html) and [peerflix](https://github.com/mafintosh/peerflix) installed on your machine. 
+You'll need to have [VLC](http://www.videolan.org/vlc/index.html), [Node](https://nodejs.org/download/), and [peerflix](https://github.com/mafintosh/peerflix) installed on your machine. 
 
 ##Installing
-If you don't have peerflix, do `npm install peerflix -g`, otherwise it's just a simple `npm install termflix -g` Boom.
+It's just a simple `npm install -g termflix`. Boom.
 
 ## Usage
 ####`termflix play [magnet] --vlc`
