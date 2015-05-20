@@ -32,11 +32,6 @@ var orderEnum = {
 	LEECHES: '10'
 }
 
-var argEnum = {
-	MAGNET: '0',
-	SEARCH: '1'
-}
-
 // ==============================
 // FUNCTIONS
 // ==============================

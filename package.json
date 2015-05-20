@@ -2,10 +2,7 @@
   "name": "termflix",
   "version": "0.1.0",
   "description": "Search and stream video torrents from your command line!",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/asarode/termflix.git"
-  },
+  "repository": "git://github.com/asarode/termflix.git",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,13 +13,13 @@
   ],
   "author": "asarode",
   "license": "MIT",
-  "preferGlobal": true,
+  "preferGlobal": "true",
   "bin": {
     "termflix": "index.js"
   },
   "dependencies": {
     "commander": "^2.8.1",
     "inquirer": "^0.8.4",
-    "thepiratebay": "^0.2.1",
+    "thepiratebay": "^0.2.1"
   }
 }
