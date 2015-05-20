@@ -1,6 +1,8 @@
 # termflix
 Search and stream torrents from your command line.
 
+![demo](http://imgur.com/G3w2h3a)
+
 ## Requirements
 You'll need to have [VLC](http://www.videolan.org/vlc/index.html), [Node](https://nodejs.org/download/), and [peerflix](https://github.com/mafintosh/peerflix) installed on your machine. 
 
