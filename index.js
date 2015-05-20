@@ -3,14 +3,10 @@
 // ==============================
 // MODULES
 // ==============================
-var torStream 	= require('torrent-stream');
 var tpb 		= require('thepiratebay');
 var spawn 		= require('child_process').spawn;
 var inquirer 	= require('inquirer');
 var program 	= require('commander');
-var path 		= require('path');
-var pkg 		= require( path.join(__dirname, 'package.json') );
-
 
 // ==============================
 // VARIABLES
@@ -102,22 +98,35 @@ function searchCommand(query, options) {
 		if (err) {
 			console.log(err);
 		} else {
-			results.forEach(function(result, i, results) {
-				torrentHash[result.name] = result.magnetLink;
-				torrentInfos.push(result.name + ' :: ' + result[infoField]);
-			});
-			inquirer.prompt([
-				{
-					type: 'list',
-					name: 'title',
-					message: 'Which torrent do you want to stream?',
-					choices: torrentInfos
-				}
-			], function(answer) {
-				var title = answer.title;
-				var titleSubstring = title.substring(0, title.indexOf(' :: '));
-				playMagnet([torrentHash[titleSubstring], '--vlc']);
-			});
+			if (results.length == 0) {
+				inquirer.prompt([
+					{
+						type: 'input',
+						name: 'title',
+						message: 'Sorry, 0 results. Enter new search: ',
+
+					}
+				], function(answer) {
+					searchCommand(answer.title, options);
+				});
+			} else {
+				results.forEach(function(result, i, results) {
+					torrentHash[result.name] = result.magnetLink;
+					torrentInfos.push(result.name + ' :: ' + result[infoField]);
+				});
+				inquirer.prompt([
+					{
+						type: 'list',
+						name: 'title',
+						message: 'Which torrent do you want to stream?',
+						choices: torrentInfos
+					}
+				], function(answer) {
+					var title = answer.title;
+					var titleString = title.substring(0, title.indexOf(' :: '));
+					playMagnet([torrentHash[titleString], '--vlc']);
+				});
+			}
 		}
 	});
 }
@@ -126,7 +135,7 @@ function searchCommand(query, options) {
 // LOGIC
 // ==============================
 program
-	.version('0.0.1');
+	.version('0.1.0');
 
 program
 	.command('play [magnet]')
@@ -146,4 +155,3 @@ program
 	});
 
 program.parse(process.argv);
-
