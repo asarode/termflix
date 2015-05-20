@@ -7,6 +7,7 @@ var tpb 		= require('thepiratebay');
 var spawn 		= require('child_process').spawn;
 var inquirer 	= require('inquirer');
 var program 	= require('commander');
+var tStream 	= require('torrent-stream');
 
 // ==============================
 // VARIABLES
@@ -40,9 +41,40 @@ var orderEnum = {
  * Starts streaming the torrent using peerflix
  */
 function playMagnet(args) {
-	var cmd = spawn('peerflix', args);
-	cmd.stdout.pipe(process.stdout);
-	cmd.stderr.pipe(process.stdout);
+
+	var engine = tStream(args[0]);
+
+	engine.on('ready', function() {
+		if (engine.files.length > 1) {
+			var fileNameHash = [];
+			var fileNames = [];
+			engine.files.forEach(function(file, i){
+				fileNameHash[file.name] = i;
+				fileNames.push(file.name);
+			});
+
+			inquirer.prompt([
+				{
+					type: 'list',
+					name: 'fileName',
+					message: 'Which file from this torrent do you want to play?',
+					choices: fileNames
+				}
+			], function(answer) {
+				var file = answer.fileName;
+				var fileIndex = fileNameHash[file];
+				args.push('--index=' + fileIndex);
+
+				var cmd = spawn('peerflix', args);
+				cmd.stdout.pipe(process.stdout);
+				cmd.stderr.pipe(process.stdout);
+			});
+		} else {
+			var cmd = spawn('peerflix', args);
+			cmd.stdout.pipe(process.stdout);
+			cmd.stderr.pipe(process.stdout);
+		}
+	});
 }
 
 /*
@@ -118,7 +150,7 @@ function searchCommand(query, options) {
 					searchCommand(answer.title, options);
 				});
 			} else {
-				results.forEach(function(result, i, results) {
+				results.forEach(function(result) {
 					torrentHash[result.name] = result.magnetLink;
 					torrentInfos.push(result.name + ' :: ' + result[infoField]);
 				});
