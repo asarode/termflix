@@ -22,4 +22,10 @@ When you select a torrent with multiple files in its folder, you will have the c
 ![Demo](/../screenshots/marathon_walkthrough.png?raw=true)
 
 ## Issues
+**VLC Has Issues Quitting**
+
 When you have a stream open in VLC, don't terminate termflix in the command line because VLC will complain and you'll have to force quit it. You should stop the stream by quitting VLC instead. This issue should be solved soon. If you want to help fix this, send a pull request my way!
+
+**Connection Error When You Search**
+
+My best guess is that this is just an issue with connecting to the pirate bay because of all the domain swapping fun stuff they do. Just try the search again and it should be fine.
