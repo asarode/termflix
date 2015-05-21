@@ -18,8 +18,11 @@
     "termflix": "index.js"
   },
   "dependencies": {
+    "bluebird": "^2.9.25",
     "commander": "^2.8.1",
     "inquirer": "^0.8.4",
-    "thepiratebay": "^0.2.1"
+    "jsonfile": "^2.0.0",
+    "thepiratebay": "^0.2.1",
+    "util": "^0.10.3"
   }
 }
