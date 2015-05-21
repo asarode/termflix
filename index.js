@@ -5,9 +5,13 @@
 // ==============================
 var tpb 		= require('thepiratebay');
 var spawn 		= require('child_process').spawn;
+var exec 		= require('child_process').exec;
 var inquirer 	= require('inquirer');
 var program 	= require('commander');
 var tStream 	= require('torrent-stream');
+var jf			= require('jsonfile');
+var util 		= require('util');
+var Promise		= require('bluebird');
 
 // ==============================
 // VARIABLES
@@ -33,16 +37,27 @@ var orderEnum = {
 	LEECHES: '10'
 }
 
+var dataFile = 'data.json';
+var dataObj = {
+	marathonMagnet: "",
+	lastWatched: ""
+};
+
 // ==============================
 // FUNCTIONS
 // ==============================
-/*
- * @param: args - the arguments the user entered
- * Starts streaming the torrent using peerflix
- */
-function playMagnet(args) {
 
-	var engine = tStream(args[0]);
+function enableMarathon(magnet) {
+	dataObj.marathonMagnet = magnet;
+
+	jf.writeFile(dataFile, dataObj, function(err) {
+		console.log("Enabled marathon! Just run `termflix marathon` to select the next file!");
+	});
+}
+
+function checkForMultipleFiles(args) {
+	var magnet = args[0];
+	var engine = tStream(magnet);
 
 	engine.on('ready', function() {
 		if (engine.files.length > 1) {
@@ -59,20 +74,58 @@ function playMagnet(args) {
 					name: 'fileName',
 					message: 'Which file from this torrent do you want to play?',
 					choices: fileNames
+				},
+				{
+					type: 'confirm',
+					name: 'enableMarathon',
+					message: 'Enable marathon mode for these files?',
+					default: true
 				}
-			], function(answer) {
-				var file = answer.fileName;
+			], function(answers) {
+				var file = answers.fileName;
 				var fileIndex = fileNameHash[file];
 				args.push('--index=' + fileIndex);
 
+				if (answers.enableMarathon) {
+					enableMarathon(magnet);
+				}
+
+				// return args;
 				var cmd = spawn('peerflix', args);
 				cmd.stdout.pipe(process.stdout);
 				cmd.stderr.pipe(process.stdout);
 			});
 		} else {
+			// return args;
 			var cmd = spawn('peerflix', args);
 			cmd.stdout.pipe(process.stdout);
 			cmd.stderr.pipe(process.stdout);
+		}
+	});
+}
+
+/*
+ * @param: args - the arguments the user entered
+ * Starts streaming the torrent using peerflix
+ */
+function playMagnet(args) {
+
+	// TODO: Promisify the call to checkForMultipleFiles so spawning the peerflix command
+	//		 will stay inside the playMagnet function.
+	checkForMultipleFiles(args);
+}
+
+/*
+ * Gets the saved marathon torrent and lets the user pick which file within the folder to play.
+ * Throws an error if there is no data.json file (and therefore no marathon saved).
+ */
+function marathonCommand() {
+	jf.readFile(dataFile, function(err, data) {
+		if (err != null) {
+			console.log("Sorry, you probably haven't enabled marathon mode for any torrent folder yet!");
+		} else {
+  			var magnet = data.marathonMagnet;
+  			playMagnet([magnet, '--vlc']);
 		}
 	});
 }
@@ -146,8 +199,8 @@ function searchCommand(query, options) {
 						message: 'Sorry, 0 results. Enter new search: ',
 
 					}
-				], function(answer) {
-					searchCommand(answer.title, options);
+				], function(answers) {
+					searchCommand(answers.title, options);
 				});
 			} else {
 				results.forEach(function(result) {
@@ -161,8 +214,8 @@ function searchCommand(query, options) {
 						message: 'Which torrent do you want to stream?',
 						choices: torrentInfos
 					}
-				], function(answer) {
-					var title = answer.title;
+				], function(answers) {
+					var title = answers.title;
 					var titleString = title.substring(0, title.indexOf(' :: '));
 					playMagnet([torrentHash[titleString], '--vlc']);
 				});
@@ -192,6 +245,12 @@ program
 		'seeds (default) | name | date | size | leeches')
 	.action(function(query, options) {
 		searchCommand(query, options);
+	});
+program
+	.command('marathon')
+	.description("if you've enabled a marthon, this will let you select the next file to watch in a folder")
+	.action(function() {
+		marathonCommand();
 	});
 
 program.parse(process.argv);
