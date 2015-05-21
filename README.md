@@ -10,13 +10,13 @@ You'll need to have [VLC](http://www.videolan.org/vlc/index.html), [Node](https:
 It's just a simple `npm install -g termflix`. Boom.
 
 ## Usage
-####`termflix play [magnet] --vlc`
+    termflix play [magnet] --vlc
 Just pass in a magnet link to a torrent and it'll start streaming to your VLC player. Here's an example magnet link to try it out: *magnet:?xt=urn:btih:31ff6c7f8af99bdbc2d5f022367bc6b85bd613ee*
 
-####`termflix search [query] --order [orderBy]`
+    termflix search [query] --order [orderBy]
 You can use this to search the pirate bay for torrents. Make sure you wrap your search in quotes! A list of torrents will come up and you can just hit enter on one of them to open the stream in VLC. You can use the --order option to order the results. The valid orderBy options are 'seeds' (default), 'name', 'date', 'size', 'leeches'.
 
-####`termflix marathon`
+    termflix marathon
 When you select a torrent with multiple files in its folder, you will have the choice to enable marathon mode for that folder. If you do, just type this command to select a file from that folder instead of having to go search for the folder again. This is perfect for marathoning entire seasons of shows!
 
 ![Demo](/../screenshots/marathon_walkthrough.png?raw=true)
