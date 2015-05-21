@@ -29,3 +29,6 @@ When you have a stream open in VLC, don't terminate termflix in the command line
 **Connection Error When You Search**
 
 My best guess is that this is just an issue with connecting to the pirate bay because of all the domain swapping fun stuff they do. Just try the search again and it should be fine.
+
+##Contact
+This is the first time I've written a node cli tool so let me know if there's some better ways to structure the code! Always open to a code review :) You can open an issue, send me a tweet ([@rjun07a](https://twitter.com/rjun07a)), or shoot me an email if you want to get in touch. I'll try to get back to you quickly.
