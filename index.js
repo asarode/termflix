@@ -10,8 +10,8 @@ var inquirer 	= require('inquirer');
 var program 	= require('commander');
 var tStream 	= require('torrent-stream');
 var jf			= require('jsonfile');
-var util 		= require('util');
 var Promise		= require('bluebird');
+var moment 		= require('moment');
 
 // ==============================
 // VARIABLES
@@ -205,6 +205,12 @@ function searchCommand(query, options) {
 			} else {
 				results.forEach(function(result) {
 					torrentHash[result.name] = result.magnetLink;
+					
+					if (infoField == 'uploadDate') {
+						var date = moment(result[infoField], 'MM-DD YYYY');
+						result[infoField] = moment(date).format('MMM Do, YYYY');
+					}
+
 					torrentInfos.push(result.name + ' :: ' + result[infoField]);
 				});
 				inquirer.prompt([
