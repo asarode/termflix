@@ -22,8 +22,8 @@
     "commander": "^2.8.1",
     "inquirer": "^0.8.4",
     "jsonfile": "^2.0.0",
+    "moment": "^2.10.3",
     "thepiratebay": "^0.2.1",
-    "torrent-stream": "^0.19.0",
-    "util": "^0.10.3"
+    "torrent-stream": "^0.19.0"
   }
 }
