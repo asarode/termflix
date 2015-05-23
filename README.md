@@ -1,4 +1,6 @@
 # termflix
+
+[![Join the chat at https://gitter.im/asarode/termflix](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/asarode/termflix?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Search and stream torrents from your command line.
 
 ![Demo](/../screenshots/termflix_demo.gif?raw=true)
