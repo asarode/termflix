@@ -12,6 +12,7 @@ var tStream 	= require('torrent-stream');
 var jf			= require('jsonfile');
 var Promise		= require('bluebird');
 var moment 		= require('moment');
+var db 			= require('text-db')('storage');
 
 // ==============================
 // VARIABLES
@@ -37,25 +38,24 @@ var orderEnum = {
 	LEECHES: '10'
 }
 
-var dataFile = 'data.json';
-var dataObj = {
-	marathonMagnet: "",
-	lastWatched: ""
-};
-
 // ==============================
 // FUNCTIONS
 // ==============================
 
+/*
+ * @param: magnet - a magnet link to save
+ * Saves a magnet link to file for future retrieval
+ */
 function enableMarathon(magnet) {
-	dataObj.marathonMagnet = magnet;
-
-	jf.writeFile(dataFile, dataObj, function(err) {
-		console.log("Enabled marathon! Just run `termflix marathon` to select the next file!");
-	});
+	db.setItem("marathonMagnet", magnet);
+	console.log("Enabled marathon! Just run `termflix marathon` to select the next file!");
 }
 
-function checkForMultipleFiles(args) {
+/*
+ * @param: args - the arguments the user entered
+ * Starts streaming the torrent using peerflix
+ */
+function playMagnet(args) {
 	var magnet = args[0];
 	var engine = tStream(magnet);
 
@@ -67,7 +67,6 @@ function checkForMultipleFiles(args) {
 				fileNameHash[file.name] = i;
 				fileNames.push(file.name);
 			});
-
 			inquirer.prompt([
 				{
 					type: 'list',
@@ -105,29 +104,17 @@ function checkForMultipleFiles(args) {
 }
 
 /*
- * @param: args - the arguments the user entered
- * Starts streaming the torrent using peerflix
- */
-function playMagnet(args) {
-
-	// TODO: Promisify the call to checkForMultipleFiles so spawning the peerflix command
-	//		 will stay inside the playMagnet function.
-	checkForMultipleFiles(args);
-}
-
-/*
  * Gets the saved marathon torrent and lets the user pick which file within the folder to play.
- * Throws an error if there is no data.json file (and therefore no marathon saved).
+ * Prints out a message if there is no saved marathon magnet.
  */
 function marathonCommand() {
-	jf.readFile(dataFile, function(err, data) {
-		if (err != null) {
-			console.log("Sorry, you probably haven't enabled marathon mode for any torrent folder yet!");
-		} else {
-  			var magnet = data.marathonMagnet;
-  			playMagnet([magnet, '--vlc']);
-		}
-	});
+	var magnet = db.getItem("marathonMagnet");
+
+	if (magnet != undefined) {
+		playMagnet([magnet, '--vlc']);
+	} else {
+		console.log("Sorry, you probably haven't enabled marathon mode for any torrent folder yet!");
+	}
 }
 
 /*
@@ -231,7 +218,7 @@ function searchCommand(query, options) {
 }
 
 // ==============================
-// LOGIC
+// COMMANDS
 // ==============================
 program
 	.version('0.1.0');
