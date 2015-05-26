@@ -4,6 +4,7 @@
 // MODULES
 // ==============================
 var tpb 		= require('thepiratebay');
+var strike 		= require('strike-api');
 var spawn 		= require('child_process').spawn;
 var exec 		= require('child_process').exec;
 var inquirer 	= require('inquirer');
@@ -88,34 +89,34 @@ function playMagnet(args) {
 				}
 			];
 
-			if (subtitleFileNames.length > 0) {
-				if (subtitleFileNames.length == 1) {
-					questions.push({
-						type: 'confirm',
-						name: 'addSubtitle',
-						message: 'Found a subtitle file. Add it?',
-						default: true
-					});
-				} else {
-					questions.push(
-						{
-							type: 'confirm',
-							name: 'wantsSubtitle',
-							message: 'Found multiple subtitle files. Do you want to add one?',
-							default: false
-						},
-						{
-							type: 'list',
-							name: 'subtitleFileName',
-							message: 'Choose a subtitle file.',
-							choices: subtitleFileNames,
-							when: function(answers) {
-								return answers.wantsSubtitle;
-							}
-						}
-					);
-				}
-			}
+			// if (subtitleFileNames.length > 0) {
+			// 	if (subtitleFileNames.length == 1) {
+			// 		questions.push({
+			// 			type: 'confirm',
+			// 			name: 'addSubtitle',
+			// 			message: 'Found a subtitle file. Add it?',
+			// 			default: true
+			// 		});
+			// 	} else {
+			// 		questions.push(
+			// 			{
+			// 				type: 'confirm',
+			// 				name: 'wantsSubtitle',
+			// 				message: 'Found multiple subtitle files. Do you want to add one?',
+			// 				default: false
+			// 			},
+			// 			{
+			// 				type: 'list',
+			// 				name: 'subtitleFileName',
+			// 				message: 'Choose a subtitle file.',
+			// 				choices: subtitleFileNames,
+			// 				when: function(answers) {
+			// 					return answers.wantsSubtitle;
+			// 				}
+			// 			}
+			// 		);
+			// 	}
+			// }
 
 			inquirer.prompt(questions, function(answers) {
 				var file = answers.fileName;
@@ -127,13 +128,14 @@ function playMagnet(args) {
 					enableMarathon(magnet);
 				}
 
-				if (answers.addSubtitle) {
-					args.push('--subtitles %s', fileHash[subtitleFileNames[0]].path)
-				}
+				// if (answers.addSubtitle) {
+				// 	fileHash[subtitleFileNames[0]].select();
+				// 	args.push('--subtitles \"/tmp/torrent-stream/%s\"', fileHash[subtitleFileNames[0]].path)
+				// }
 
-				if (answers.wantsSubtitle) {
-					var subtitleFile = answers.subtitleFile;
-				}
+				// if (answers.wantsSubtitle) {
+				// 	var subtitleFile = answers.subtitleFile;
+				// }
 
 				// return args;
 				var cmd = spawn('peerflix', args);
@@ -179,6 +181,101 @@ function playCommand(magnet, options) {
 }
 
 /*
+ * @param: orderOption - the optin string entered with --option
+ * @return: an object with "order" and "infoField" fields
+ * Converts the given orderOption to the corrent order enum type. Also chooses
+ * the right name for infoField based on what name the torrent search api uses
+ * for the given orderOption.
+ */
+function convertOrder(orderOption) {
+
+	orderObj = {};
+
+	switch (orderOption) {
+		case 'name':
+			orderObj.order = orderEnum.NAME;
+			orderObj.infoField = 'torrent_title';
+			break;
+		case 'date':
+			orderObj.order = orderEnum.DATE;
+			orderObj.infoField = 'upload_date';
+			break;
+		case 'size':
+			orderObj.order = orderEnum.SIZE;
+			orderObj.infoField = 'size';
+			break;
+		case 'seeds':
+			orderObj.order = orderEnum.SEEDS;
+			orderObj.infoField = 'seeds';
+			break;
+		case 'leeches':
+			orderObj.order = orderEnum.LEECHES;
+			orderObj.infoField = 'leeches';
+			break;
+		default:
+			orderObj.order = orderEnum.SEEDS;
+			orderObj.infoField = 'seeds';
+	}
+
+	return orderObj;
+}
+
+/*
+ * @param: order - an order enum type
+ * @param: infoField - the info field corresponding to the order enum
+ * @param: torrents - an array of torrent objects
+ * @return: a sorted array of torrent objects
+ * Sorts the torrents in the torrent object by the given order.
+ */
+function sortTorrents(order, infoField, torrents) {
+	sortedTorrents = [];
+	if (order == orderEnum.DATE) {
+		torrents.forEach(function(torrent) {
+			var date = moment(torrent[infoField], "MMM DD, YYYY");
+			sortedTorrents.push({
+				torrent: torrent,
+				sortValue: date.valueOf()
+			});
+		});
+	} else {
+		torrents.forEach(function(torrent) {
+			sortedTorrents.push({
+				torrent: torrent,
+				sortValue: torrent[infoField]
+			});
+		})
+	}
+
+	if (order == orderEnum.NAME || order == orderEnum.LEECHES) {
+		sortedTorrents.sort(function(a, b) {
+			if (a.sortValue > b.sortValue) {
+				return 1;
+			}
+			if (a.sortValue < b.sortValue) {
+				return -1;
+			}
+			return 0;
+		});
+	} else {
+		sortedTorrents.sort(function(a, b) {
+			if (a.sortValue > b.sortValue) {
+				return -1;
+			}
+			if (a.sortValue < b.sortValue) {
+				return 1;
+			}
+			return 0;
+		});
+	}
+
+	result = [];
+	sortedTorrents.forEach(function(torrent) {
+		result.push(torrent.torrent);
+	});
+	return result;
+}
+
+/*
  * @param: query - the search query the user entered
  * @param: options - an options object
  * Searches the pirate bay for videos with the given query and returns
@@ -188,79 +285,92 @@ function searchCommand(query, options) {
 	var torrentHash = [];
 	var torrentInfos = [];
 	var orderBy = options.order;
-	var order;
-	var infoField;
+	var infoField = convertOrder(orderBy).infoField;
+	var order = convertOrder(orderBy).order;
 
-	switch (orderBy) {
-		case 'name':
-			order = orderEnum.NAME;
-			infoField = 'seeders';
-			break;
-		case 'date':
-			order = orderEnum.DATE;
-			infoField = 'uploadDate';
-			break;
-		case 'size':
-			order = orderEnum.SIZE;
-			infoField = 'size';
-			break;
-		case 'seeds':
-			order = orderEnum.SEEDS;
-			infoField = 'seeders';
-			break;
-		case 'leeches':
-			order = orderEnum.LEECHES;
-			infoField = 'leechers';
-			break;
-		default:
-			order = orderEnum.SEEDS;
-			infoField = 'seeders';
-	}
+	strike.search(query).then(function(res) {
+		var results = res.torrents;
+		if (results.length == 0) {
+			inquirer.prompt([
+				{
+					type: 'input',
+					name: 'title',
+					message: 'Sorry, 0 results. Enter new search: ',
 
-	tpb.search(query, {
-		category: 200,
-		orderBy: order
-	}, function(err, results) {
-		if (err) {
-			console.log(err);
-		} else {
-			if (results.length == 0) {
-				inquirer.prompt([
-					{
-						type: 'input',
-						name: 'title',
-						message: 'Sorry, 0 results. Enter new search: ',
-
-					}
-				], function(answers) {
+				}
+			], function(answers) {
 					searchCommand(answers.title, options);
-				});
-			} else {
-				results.forEach(function(result) {
-					torrentHash[result.name] = result.magnetLink;
-					
-					if (infoField == 'uploadDate') {
-						var date = moment(result[infoField], 'MM-DD YYYY');
-						result[infoField] = moment(date).format('MMM Do, YYYY');
-					}
-
-					torrentInfos.push(result.name + ' :: ' + result[infoField]);
-				});
-				inquirer.prompt([
-					{
-						type: 'list',
-						name: 'title',
-						message: 'Which torrent do you want to stream?',
-						choices: torrentInfos
-					}
-				], function(answers) {
-					var title = answers.title;
-					var titleString = title.substring(0, title.indexOf(' :: '));
-					playMagnet([torrentHash[titleString], '--vlc']);
-				});
-			}
+			});
+		} else {
+			results = sortTorrents(order, infoField, results);
+			results.forEach(function(result) {
+				torrentHash[result.torrent_title] = result.magnet_uri;
+				if (order == orderEnum.NAME) {
+					torrentInfos.push(result.torrent_title + ' :: ');
+				} else {
+					torrentInfos.push(result.torrent_title + ' :: ' + result[infoField]);
+				}
+			});
+			
+			inquirer.prompt([
+				{
+					type: 'list',
+					name: 'title',
+					message: 'Which torrent do you want to stream?',
+					choices: torrentInfos
+				}
+			], function(answers) {
+				var title = answers.title;
+				var titleString = title.substring(0, title.indexOf(' :: '));
+				playMagnet([torrentHash[titleString], '--vlc']);
+			});
 		}
 	});
+
+	// tpb.search(query, {
+	// 	category: 200,
+	// 	orderBy: order
+	// }, function(err, results) {
+	// 	if (err) {
+	// 		console.log(err);
+	// 	} else {
+	// 		if (results.length == 0) {
+	// 			inquirer.prompt([
+	// 				{
+	// 					type: 'input',
+	// 					name: 'title',
+	// 					message: 'Sorry, 0 results. Enter new search: ',
+
+	// 				}
+	// 			], function(answers) {
+	// 				searchCommand(answers.title, options);
+	// 			});
+	// 		} else {
+	// 			results.forEach(function(result) {
+	// 				torrentHash[result.name] = result.magnetLink;
+					
+	// 				if (infoField == 'uploadDate') {
+	// 					var date = moment(result[infoField], 'MM-DD YYYY');
+	// 					result[infoField] = moment(date).format('MMM Do, YYYY');
+	// 				}
+
+	// 				torrentInfos.push(result.name + ' :: ' + result[infoField]);
+	// 			});
+	// 			inquirer.prompt([
+	// 				{
+	// 					type: 'list',
+	// 					name: 'title',
+	// 					message: 'Which torrent do you want to stream?',
+	// 					choices: torrentInfos
+	// 				}
+	// 			], function(answers) {
+	// 				var title = answers.title;
+	// 				var titleString = title.substring(0, title.indexOf(' :: '));
+	// 				playMagnet([torrentHash[titleString], '--vlc']);
+	// 			});
+	// 		}
+	// 	}
+	// });
 }
 
 // ==============================
