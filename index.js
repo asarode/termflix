@@ -88,36 +88,7 @@ function playMagnet(args) {
 					default: true
 				}
 			];
-
-			// if (subtitleFileNames.length > 0) {
-			// 	if (subtitleFileNames.length == 1) {
-			// 		questions.push({
-			// 			type: 'confirm',
-			// 			name: 'addSubtitle',
-			// 			message: 'Found a subtitle file. Add it?',
-			// 			default: true
-			// 		});
-			// 	} else {
-			// 		questions.push(
-			// 			{
-			// 				type: 'confirm',
-			// 				name: 'wantsSubtitle',
-			// 				message: 'Found multiple subtitle files. Do you want to add one?',
-			// 				default: false
-			// 			},
-			// 			{
-			// 				type: 'list',
-			// 				name: 'subtitleFileName',
-			// 				message: 'Choose a subtitle file.',
-			// 				choices: subtitleFileNames,
-			// 				when: function(answers) {
-			// 					return answers.wantsSubtitle;
-			// 				}
-			// 			}
-			// 		);
-			// 	}
-			// }
-
+			
 			inquirer.prompt(questions, function(answers) {
 				var file = answers.fileName;
 				// var fileIndex = fileIndexHash[file];
@@ -326,51 +297,6 @@ function searchCommand(query, options) {
 			});
 		}
 	});
-
-	// tpb.search(query, {
-	// 	category: 200,
-	// 	orderBy: order
-	// }, function(err, results) {
-	// 	if (err) {
-	// 		console.log(err);
-	// 	} else {
-	// 		if (results.length == 0) {
-	// 			inquirer.prompt([
-	// 				{
-	// 					type: 'input',
-	// 					name: 'title',
-	// 					message: 'Sorry, 0 results. Enter new search: ',
-
-	// 				}
-	// 			], function(answers) {
-	// 				searchCommand(answers.title, options);
-	// 			});
-	// 		} else {
-	// 			results.forEach(function(result) {
-	// 				torrentHash[result.name] = result.magnetLink;
-					
-	// 				if (infoField == 'uploadDate') {
-	// 					var date = moment(result[infoField], 'MM-DD YYYY');
-	// 					result[infoField] = moment(date).format('MMM Do, YYYY');
-	// 				}
-
-	// 				torrentInfos.push(result.name + ' :: ' + result[infoField]);
-	// 			});
-	// 			inquirer.prompt([
-	// 				{
-	// 					type: 'list',
-	// 					name: 'title',
-	// 					message: 'Which torrent do you want to stream?',
-	// 					choices: torrentInfos
-	// 				}
-	// 			], function(answers) {
-	// 				var title = answers.title;
-	// 				var titleString = title.substring(0, title.indexOf(' :: '));
-	// 				playMagnet([torrentHash[titleString], '--vlc']);
-	// 			});
-	// 		}
-	// 	}
-	// });
 }
 
 // ==============================
