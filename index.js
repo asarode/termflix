@@ -61,13 +61,19 @@ function playMagnet(args) {
 
 	engine.on('ready', function() {
 		if (engine.files.length > 1) {
-			var fileNameHash = [];
+			// var fileIndexHash = [];
 			var fileNames = [];
+			var fileHash = [];
+			var subtitleFileNames = [];
 			engine.files.forEach(function(file, i){
-				fileNameHash[file.name] = i;
+				fileHash[file.name] = file;
+				// fileIndexHash[file.name] = i;
 				fileNames.push(file.name);
+				if (file.name.slice(file.name.length - 4) == '.srt') {
+					subtitleFileNames.push(file.name);
+				}
 			});
-			inquirer.prompt([
+			var questions = [
 				{
 					type: 'list',
 					name: 'fileName',
@@ -80,13 +86,53 @@ function playMagnet(args) {
 					message: 'Enable marathon mode for these files?',
 					default: true
 				}
-			], function(answers) {
+			];
+
+			if (subtitleFileNames.length > 0) {
+				if (subtitleFileNames.length == 1) {
+					questions.push({
+						type: 'confirm',
+						name: 'addSubtitle',
+						message: 'Found a subtitle file. Add it?',
+						default: true
+					});
+				} else {
+					questions.push(
+						{
+							type: 'confirm',
+							name: 'wantsSubtitle',
+							message: 'Found multiple subtitle files. Do you want to add one?',
+							default: false
+						},
+						{
+							type: 'list',
+							name: 'subtitleFileName',
+							message: 'Choose a subtitle file.',
+							choices: subtitleFileNames,
+							when: function(answers) {
+								return answers.wantsSubtitle;
+							}
+						}
+					);
+				}
+			}
+
+			inquirer.prompt(questions, function(answers) {
 				var file = answers.fileName;
-				var fileIndex = fileNameHash[file];
+				// var fileIndex = fileIndexHash[file];
+				var fileIndex = fileNames.indexOf(file);
 				args.push('--index=' + fileIndex);
 
 				if (answers.enableMarathon) {
 					enableMarathon(magnet);
+				}
+
+				if (answers.addSubtitle) {
+					args.push('--subtitles %s', fileHash[subtitleFileNames[0]].path)
+				}
+
+				if (answers.wantsSubtitle) {
+					var subtitleFile = answers.subtitleFile;
 				}
 
 				// return args;
@@ -125,7 +171,7 @@ function marathonCommand() {
  */
 function playCommand(magnet, options) {
 	var ops = options.parent.rawArgs.splice(4);
-	var playArgs = [magnet];
+	var playArgs = [magnet, '--remove'];
 	ops.forEach(function(op) {
 		playArgs.push(op);
 	});
