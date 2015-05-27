@@ -241,6 +241,41 @@ function sortTorrents(order, infoField, torrents) {
 	return result;
 }
 
+function repeatSearch() {
+	inquirer.prompt([
+		{
+			type: 'input',
+			name: 'title',
+			message: 'Sorry, 0 results. Enter new search: ',
+		}
+	], function(answers) {
+		searchCommand(answers.title, options);
+	});
+}
+
+function formatTorrentString(torrent, order, infoField) {
+	if (order == orderEnum.NAME) {
+		return torrent.torrent_title + ' :: ' + torrent['seeds'];
+	} else {
+		return torrent.torrent_title + ' :: ' + torrent[infoField];
+	}
+}
+
+function fileSelectPrompt(torrentHash, torrentInfos) {
+	inquirer.prompt([
+		{
+			type: 'list',
+			name: 'title',
+			message: 'Which torrent do you want to stream?',
+			choices: torrentInfos
+		}
+	], function(answers) {
+		var title = answers.title;
+		var titleString = title.substring(0, title.indexOf(' :: '));
+		playMagnet([torrentHash[titleString], '--vlc']);
+	});
+}
+
 /*
  * @param: query - the search query the user entered
  * @param: options - an options object
@@ -251,45 +286,22 @@ function searchCommand(query, options) {
 	var torrentHash = [];
 	var torrentInfos = [];
 	var orderBy = options.order;
+	var category = options.category;
 	var infoField = convertOrder(orderBy).infoField;
 	var order = convertOrder(orderBy).order;
 
-	strike.search(query).then(function(res) {
+	strike.search(query, category).then(function(res) {
 		var results = res.torrents;
 		if (results.length == 0) {
-			inquirer.prompt([
-				{
-					type: 'input',
-					name: 'title',
-					message: 'Sorry, 0 results. Enter new search: ',
-
-				}
-			], function(answers) {
-					searchCommand(answers.title, options);
-			});
+			repeatSearch();
 		} else {
 			results = sortTorrents(order, infoField, results);
 			results.forEach(function(result) {
 				torrentHash[result.torrent_title] = result.magnet_uri;
-				if (order == orderEnum.NAME) {
-					torrentInfos.push(result.torrent_title + ' :: ');
-				} else {
-					torrentInfos.push(result.torrent_title + ' :: ' + result[infoField]);
-				}
+				torrentInfos.push(formatTorrentString(result, order, infoField));
 			});
 			
-			inquirer.prompt([
-				{
-					type: 'list',
-					name: 'title',
-					message: 'Which torrent do you want to stream?',
-					choices: torrentInfos
-				}
-			], function(answers) {
-				var title = answers.title;
-				var titleString = title.substring(0, title.indexOf(' :: '));
-				playMagnet([torrentHash[titleString], '--vlc']);
-			});
+			fileSelectPrompt(torrentHash, torrentInfos);
 		}
 	});
 }
@@ -311,8 +323,11 @@ program
 	.command('search [query]')
 	.description('search the pirate bay with a query')
 	.option('-o, --order [orderBy]', 
-		'order results by a given field:' +
+		'order results by a given field: ' +
 		'seeds (default) | name | date | size | leeches')
+	.option('-c, --category [cat]', 
+		'search results within a given category: ' +
+		'movies | tv | anime')
 	.action(function(query, options) {
 		searchCommand(query, options);
 	});
