@@ -19,26 +19,30 @@ var db 			= require('text-db')('storage');
 // VARIABLES
 // ==============================
 /*
- * value of each key corresponds to tpb search query options
- * 1 - name descending
- * 2 - name ascending
- * 3 - date descending
- * 4 - date ascending
- * 5 - size descending
- * 6 - size ascending
- * 7 - seeds descending
- * 8 - seeds ascending
- * 9 - leeches descending
- * 10 - leeches ascending
+ * The possible orderings to sort the torrent results by.
  */
 var orderEnum = {
-	NAME: '1',
-	DATE: '4',
-	SIZE: '5',
-	SEEDS: '7',
-	LEECHES: '10'
+	NAME: '0', // ascending order
+	DATE: '1', // ascending order (earliest upload date first)
+	SIZE: '2', // descending order
+	SEEDS: '3', // descending order
+	LEECHES: '4' // descending order
+}
+/*
+ * The names of the fields on the torrent objects that the search api returns.
+ */
+var fieldEnum = {
+	NAME: 'torrent_title',
+	DATE: 'upload_date',
+	SIZE: 'size',
+	SEEDS: 'seeds',
+	LEECHES: 'leeches'
 }
 
+/*
+ * The torrent stream engine that is used to stream the file.
+ * NOTE: Declared as a global so we can manipulate it on process.on('SIGINT')
+ */
 var engine;
 
 // ==============================
@@ -160,27 +164,27 @@ function convertOrder(orderOption) {
 	switch (orderOption) {
 		case 'name':
 			orderObj.order = orderEnum.NAME;
-			orderObj.infoField = 'torrent_title';
+			orderObj.infoField = fieldEnum.NAME;
 			break;
 		case 'date':
 			orderObj.order = orderEnum.DATE;
-			orderObj.infoField = 'upload_date';
+			orderObj.infoField = fieldEnum.DATE;
 			break;
 		case 'size':
 			orderObj.order = orderEnum.SIZE;
-			orderObj.infoField = 'size';
+			orderObj.infoField = fieldEnum.SIZE;
 			break;
 		case 'seeds':
 			orderObj.order = orderEnum.SEEDS;
-			orderObj.infoField = 'seeds';
+			orderObj.infoField = fieldEnum.SEEDS;
 			break;
 		case 'leeches':
 			orderObj.order = orderEnum.LEECHES;
-			orderObj.infoField = 'leeches';
+			orderObj.infoField = fieldEnum.LEECHES;
 			break;
 		default:
 			orderObj.order = orderEnum.SEEDS;
-			orderObj.infoField = 'seeds';
+			orderObj.infoField = fieldEnum.SEEDS;
 	}
 
 	return orderObj;
@@ -255,9 +259,9 @@ function repeatSearch() {
 
 function formatTorrentString(torrent, order, infoField) {
 	if (order == orderEnum.NAME) {
-		return torrent.torrent_title + ' :: ' + torrent['seeds'];
+		return torrent[fieldEnum.NAME] + ' :: ' + torrent[fieldEnum.SEEDS];
 	} else {
-		return torrent.torrent_title + ' :: ' + torrent[infoField];
+		return torrent[fieldEnum.NAME] + ' :: ' + torrent[infoField];
 	}
 }
 
@@ -297,7 +301,7 @@ function searchCommand(query, options) {
 		} else {
 			results = sortTorrents(order, infoField, results);
 			results.forEach(function(result) {
-				torrentHash[result.torrent_title] = result.magnet_uri;
+				torrentHash[result[fieldEnum.NAME]] = result.magnet_uri;
 				torrentInfos.push(formatTorrentString(result, order, infoField));
 			});
 			
