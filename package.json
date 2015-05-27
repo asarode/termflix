@@ -1,6 +1,6 @@
 {
   "name": "termflix",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "description": "Search and stream video torrents from your command line!",
   "repository": "git://github.com/asarode/termflix.git",
   "scripts": {
