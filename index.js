@@ -39,6 +39,8 @@ var orderEnum = {
 	LEECHES: '10'
 }
 
+var engine;
+
 // ==============================
 // FUNCTIONS
 // ==============================
@@ -58,7 +60,7 @@ function enableMarathon(magnet) {
  */
 function playMagnet(args) {
 	var magnet = args[0];
-	var engine = tStream(magnet);
+	engine = tStream(magnet);
 
 	engine.on('ready', function() {
 		if (engine.files.length > 1) {
@@ -88,7 +90,7 @@ function playMagnet(args) {
 					default: true
 				}
 			];
-			
+
 			inquirer.prompt(questions, function(answers) {
 				var file = answers.fileName;
 				// var fileIndex = fileIndexHash[file];
@@ -329,3 +331,13 @@ program
 	});
 
 program.parse(process.argv);
+
+process.on('SIGINT', function() {
+	if (engine) {
+		console.log("\n Closing...");
+		engine.remove(function() {
+			process.exit();
+		});
+	}
+});
+
