@@ -65,16 +65,14 @@ function enableMarathon(magnet) {
 function playMagnet(args) {
 	var magnet = args[0];
 	engine = tStream(magnet);
-
+	
 	engine.on('ready', function() {
-		if (engine.files.length > 1) {
-			// var fileIndexHash = [];
+		if (videoCount(engine.files) > 1) {
 			var fileNames = [];
 			var fileHash = [];
 			var subtitleFileNames = [];
 			engine.files.forEach(function(file, i){
 				fileHash[file.name] = file;
-				// fileIndexHash[file.name] = i;
 				fileNames.push(file.name);
 				if (file.name.slice(file.name.length - 4) == '.srt') {
 					subtitleFileNames.push(file.name);
@@ -258,6 +256,9 @@ function repeatSearch() {
 }
 
 function formatTorrentString(torrent, order, infoField) {
+
+	console.log('INFO FIELD: ' + infoField);
+	console.log(torrent);
 	if (order == orderEnum.NAME) {
 		return torrent[fieldEnum.NAME] + ' :: ' + torrent[fieldEnum.SEEDS];
 	} else {
@@ -280,6 +281,18 @@ function fileSelectPrompt(torrentHash, torrentInfos) {
 	});
 }
 
+function videoCount(files) {
+	var extensions = ['mp4', 'mp4', 'mkv', 'avi', 'mov', 'flv', 'f4v', 'm4p'];
+	var count = 0;
+	files.forEach(function(file) { 
+		var ending = file.name.substr(file.name.lastIndexOf('.') + 1);
+		if (extensions.indexOf(ending) > -1) {
+			count++;
+		}
+	});
+	return count;
+}
+
 /*
  * @param: query - the search query the user entered
  * @param: options - an options object
@@ -295,6 +308,7 @@ function searchCommand(query, options) {
 	var order = convertOrder(orderBy).order;
 
 	strike.search(query, category).then(function(res) {
+		console.log(res);
 		var results = res.torrents;
 		if (results.length == 0) {
 			repeatSearch();
@@ -307,6 +321,95 @@ function searchCommand(query, options) {
 			
 			fileSelectPrompt(torrentHash, torrentInfos);
 		}
+	}).catch(function(err) {
+
+		/*
+		 * value of each key corresponds to tpb search query options
+		 * 1 - name descending
+		 * 2 - name ascending
+		 * 3 - date descending
+		 * 4 - date ascending
+		 * 5 - size descending
+		 * 6 - size ascending
+		 * 7 - seeds descending
+		 * 8 - seeds ascending
+		 * 9 - leeches descending
+		 * 10 - leeches ascending
+		 */
+		orderEnum = {
+			NAME: '1',
+			DATE: '4',
+			SIZE: '5',
+			SEEDS: '7',
+			LEECHES: '10'
+		}
+
+		fieldEnum = {
+			NAME: 'name',
+			DATE: 'uploadDate',
+			SIZE: 'size',
+			SEEDS: 'seeders',
+			LEECHES: 'leechers'
+		}
+
+		switch (category) {
+			case 'movies':
+				category = 201;
+				break;
+			case 'tv':
+				category = 205;
+				break;
+			default:
+				category = 200;
+		}
+
+		infoField = convertOrder(orderBy).infoField;
+		order = convertOrder(orderBy).order;
+
+		tpb.search(query, {
+			category: category,
+			orderBy: order
+		}, function(err, results) {
+			if (err) {
+				console.log(err);
+			} else {
+				if (results.length == 0) {
+					inquirer.prompt([
+						{
+							type: 'input',
+							name: 'title',
+							message: 'Sorry, 0 results. Enter new search: ',
+
+						}
+					], function(answers) {
+						searchCommand(answers.title, options);
+					});
+				} else {
+					results.forEach(function(result) {
+						torrentHash[result.name] = result.magnetLink;
+						
+						if (infoField == fieldEnum.DATE) {
+							var date = moment(result[infoField], 'MM-DD YYYY');
+							result[infoField] = moment(date).format('MMM Do, YYYY');
+						}
+
+						torrentInfos.push(formatTorrentString(result, order, infoField));
+					});
+					inquirer.prompt([
+						{
+							type: 'list',
+							name: 'title',
+							message: 'Which torrent do you want to stream?',
+							choices: torrentInfos
+						}
+					], function(answers) {
+						var title = answers.title;
+						var titleString = title.substring(0, title.indexOf(' :: '));
+						playMagnet([torrentHash[titleString], '--vlc']);
+					});
+				}
+			}
+		});
 	});
 }
 
