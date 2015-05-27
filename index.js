@@ -21,7 +21,7 @@ var db 			= require('text-db')('storage');
 /*
  * The possible orderings to sort the torrent results by.
  */
-var orderEnum = {
+var strikeOrderEnum = {
 	NAME: '0', // ascending order
 	DATE: '1', // ascending order (earliest upload date first)
 	SIZE: '2', // descending order
@@ -31,13 +31,45 @@ var orderEnum = {
 /*
  * The names of the fields on the torrent objects that the search api returns.
  */
-var fieldEnum = {
+var strikeFieldEnum = {
 	NAME: 'torrent_title',
 	DATE: 'upload_date',
 	SIZE: 'size',
 	SEEDS: 'seeds',
 	LEECHES: 'leeches'
 }
+
+/*
+ * value of each key corresponds to tpb search query options
+ * 1 - name descending
+ * 2 - name ascending
+ * 3 - date descending
+ * 4 - date ascending
+ * 5 - size descending
+ * 6 - size ascending
+ * 7 - seeds descending
+ * 8 - seeds ascending
+ * 9 - leeches descending
+ * 10 - leeches ascending
+ */
+var tpbOrderEnum = {
+	NAME: '1',
+	DATE: '4',
+	SIZE: '5',
+	SEEDS: '7',
+	LEECHES: '10'
+}
+
+var tpbFieldEnum = {
+	NAME: 'name',
+	DATE: 'uploadDate',
+	SIZE: 'size',
+	SEEDS: 'seeders',
+	LEECHES: 'leechers'
+}
+
+var orderEnum = strikeOrderEnum;
+var fieldEnum = strikeFieldEnum;
 
 /*
  * The torrent stream engine that is used to stream the file.
@@ -256,9 +288,6 @@ function repeatSearch() {
 }
 
 function formatTorrentString(torrent, order, infoField) {
-
-	console.log('INFO FIELD: ' + infoField);
-	console.log(torrent);
 	if (order == orderEnum.NAME) {
 		return torrent[fieldEnum.NAME] + ' :: ' + torrent[fieldEnum.SEEDS];
 	} else {
@@ -284,13 +313,75 @@ function fileSelectPrompt(torrentHash, torrentInfos) {
 function videoCount(files) {
 	var extensions = ['mp4', 'mp4', 'mkv', 'avi', 'mov', 'flv', 'f4v', 'm4p'];
 	var count = 0;
-	files.forEach(function(file) { 
+	files.forEach(function(file) {
 		var ending = file.name.substr(file.name.lastIndexOf('.') + 1);
 		if (extensions.indexOf(ending) > -1) {
 			count++;
 		}
 	});
 	return count;
+}
+
+function toTpbCategory(category) {
+	switch (category) {
+		case 'movies':
+			return 201;
+		case 'tv':
+			return 205;
+		default:
+			return 200;
+	}
+}
+
+function toStrikeEnums() {
+	orderEnum = strikeOrderEnum;
+	fieldEnum = strikeFieldEnum;
+}
+
+function toTpbEnums() {
+	orderEnum = tpbOrderEnum;
+	fieldEnum = tpbFieldEnum;
+}
+
+function strikeProcess(res, order, infoField) {
+	var torrentHash = [];
+	var torrentInfos = [];
+	var results = res.torrents;
+
+	if (results.length == 0) {
+		repeatSearch();
+	} else {
+		results = sortTorrents(order, infoField, results);
+		results.forEach(function(result) {
+			torrentHash[result[fieldEnum.NAME]] = result.magnet_uri;
+			torrentInfos.push(formatTorrentString(result, order, infoField));
+		});
+		
+		fileSelectPrompt(torrentHash, torrentInfos);
+	}
+}
+
+function tpbProcess(res, order, infoField) {
+	var torrentHash = [];
+	var torrentInfos = [];
+	var results = res;
+
+	if (results.length == 0) {
+		repeatSearch();
+	} else {
+		results.forEach(function(result) {
+			torrentHash[result.name] = result.magnetLink;
+			
+			if (infoField == fieldEnum.DATE) {
+				var date = moment(result[infoField], 'MM-DD YYYY');
+				result[infoField] = moment(date).format('MMM Do, YYYY');
+			}
+
+			torrentInfos.push(formatTorrentString(result, order, infoField));
+		});
+
+		fileSelectPrompt(torrentHash, torrentInfos);
+	}
 }
 
 /*
@@ -300,117 +391,110 @@ function videoCount(files) {
  * a list of torrent objects
  */
 function searchCommand(query, options) {
-	var torrentHash = [];
-	var torrentInfos = [];
 	var orderBy = options.order;
 	var category = options.category;
-	var infoField = convertOrder(orderBy).infoField;
-	var order = convertOrder(orderBy).order;
 
-	strike.search(query, category).then(function(res) {
-		console.log(res);
-		var results = res.torrents;
-		if (results.length == 0) {
-			repeatSearch();
-		} else {
-			results = sortTorrents(order, infoField, results);
-			results.forEach(function(result) {
-				torrentHash[result[fieldEnum.NAME]] = result.magnet_uri;
-				torrentInfos.push(formatTorrentString(result, order, infoField));
+	if (db.getItem('vendor') == 'strike') {
+		toStrikeEnums();
+		var orderObj = convertOrder(orderBy);
+		var order = orderObj.order;
+		var infoField = orderObj.infoField;
+
+		strike.search(query, category).then(function(res) {
+			strikeProcess(res, order, infoField);
+		}).catch(function(err) {
+			console.log(err);
+			console.log('\nERROR: The Strike API is down right now. Trying The Pirate Bay...');
+			toTpbEnums();
+			var orderObj = convertOrder(orderBy);
+			var order = orderObj.order;
+			var infoField = orderObj.infoField;
+			category = toTpbCategory(category);
+			tpb.search(query, {
+				category: category,
+				orderBy: order
+			}, function(err, res) {
+				if (err) { 
+					console.log(err);
+					console.log("\nERROR: The Pirate Bay API is also down right now :(");
+				}
+				else {
+					tpbProcess(res, order, infoField);
+				}
 			});
-			
-			fileSelectPrompt(torrentHash, torrentInfos);
-		}
-	}).catch(function(err) {
-
-		/*
-		 * value of each key corresponds to tpb search query options
-		 * 1 - name descending
-		 * 2 - name ascending
-		 * 3 - date descending
-		 * 4 - date ascending
-		 * 5 - size descending
-		 * 6 - size ascending
-		 * 7 - seeds descending
-		 * 8 - seeds ascending
-		 * 9 - leeches descending
-		 * 10 - leeches ascending
-		 */
-		orderEnum = {
-			NAME: '1',
-			DATE: '4',
-			SIZE: '5',
-			SEEDS: '7',
-			LEECHES: '10'
-		}
-
-		fieldEnum = {
-			NAME: 'name',
-			DATE: 'uploadDate',
-			SIZE: 'size',
-			SEEDS: 'seeders',
-			LEECHES: 'leechers'
-		}
-
-		switch (category) {
-			case 'movies':
-				category = 201;
-				break;
-			case 'tv':
-				category = 205;
-				break;
-			default:
-				category = 200;
-		}
-
-		infoField = convertOrder(orderBy).infoField;
-		order = convertOrder(orderBy).order;
-
+		});
+	} else if (db.getItem('vendor') == 'tpb') {
+		toTpbEnums();
+		var orderObj = convertOrder(orderBy);
+		var order = orderObj.order;
+		var infoField = orderObj.infoField;
+		category = toTpbCategory(category);
 		tpb.search(query, {
 			category: category,
 			orderBy: order
-		}, function(err, results) {
+		}, function(err, res) {
 			if (err) {
 				console.log(err);
-			} else {
-				if (results.length == 0) {
-					inquirer.prompt([
-						{
-							type: 'input',
-							name: 'title',
-							message: 'Sorry, 0 results. Enter new search: ',
-
-						}
-					], function(answers) {
-						searchCommand(answers.title, options);
-					});
-				} else {
-					results.forEach(function(result) {
-						torrentHash[result.name] = result.magnetLink;
-						
-						if (infoField == fieldEnum.DATE) {
-							var date = moment(result[infoField], 'MM-DD YYYY');
-							result[infoField] = moment(date).format('MMM Do, YYYY');
-						}
-
-						torrentInfos.push(formatTorrentString(result, order, infoField));
-					});
-					inquirer.prompt([
-						{
-							type: 'list',
-							name: 'title',
-							message: 'Which torrent do you want to stream?',
-							choices: torrentInfos
-						}
-					], function(answers) {
-						var title = answers.title;
-						var titleString = title.substring(0, title.indexOf(' :: '));
-						playMagnet([torrentHash[titleString], '--vlc']);
-					});
-				}
+				console.log('\nERROR: The Pirate Bay API is down right now. Trying Strike...')
+				toStrikeEnums();
+				var orderObj = convertOrder(orderBy);
+				order = orderObj.order;
+				infoField = orderObj.infoField;
+				category = options.category;
+				strike.search(query, category).then(function(res) {
+					strikeProcess(res, order, infoField);
+				}).catch(function(err) {
+					console.log(err);
+					console.log('\nERROR: The Strike API is also down right now :(');
+				});
+			} else { 
+				toTpbEnums();
+				var orderObj = convertOrder(orderBy);
+				order = orderObj.order;
+				infoField = orderObj.infoField;
+				category = toTpbCategory(category);
+				tpbProcess(res, order, infoField);
 			}
 		});
-	});
+	} else {
+		toStrikeEnums();
+		var orderObj = convertOrder(orderBy);
+		var order = orderObj.order;
+		var infoField = orderObj.infoField;
+		strike.search(query, category).then(function(res) {
+			strikeProcess(res, order, infoField);
+		}).catch(function(err) {
+			console.log(err);
+			console.log('\nERROR: The Strike API is down right now. Trying The Pirate Bay...');
+			toTpbEnums();
+			var orderObj = convertOrder(orderBy);
+			var order = orderObj.order;
+			var infoField = orderObj.infoField;
+			category = toTpbCategory(category);
+			tpb.search(query, {
+				category: category,
+				orderBy: order
+			}, function(err, res) {
+				if (err) { 
+					console.log(err);
+					console.log("\nERROR: The Pirate Bay API is also down right now :(");
+				}
+				else {
+					tpbProcess(res, order, infoField);
+				}
+			});
+		});
+	}
+}
+
+function vendorCommand(api) {
+	if (api == 'strike') {
+		db.setItem('vendor', 'strike');
+	} else if (api == 'tpb') {
+		db.setItem('vendor', 'tpb');
+	} else {
+		console.log("Sorry, that's not a supported vendor. Supported vendors: \"strike\", \"tpb\"");
+	}
 }
 
 // ==============================
@@ -438,6 +522,12 @@ program
 	.action(function(query, options) {
 		searchCommand(query, options);
 	});
+program
+	.command('vendor [api]')
+	.description('set the default api to use')
+	.action(function(api) {
+		vendorCommand(api);
+	})
 program
 	.command('marathon')
 	.description("if you've enabled a marthon, this will let you select the next file to watch in a folder")
