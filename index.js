@@ -275,7 +275,7 @@ function sortTorrents(order, infoField, torrents) {
 	return result;
 }
 
-function repeatSearch() {
+function repeatSearch(options) {
 	inquirer.prompt([
 		{
 			type: 'input',
@@ -343,13 +343,13 @@ function toTpbEnums() {
 	fieldEnum = tpbFieldEnum;
 }
 
-function strikeProcess(res, order, infoField) {
+function strikeProcess(res, order, infoField, options) {
 	var torrentHash = [];
 	var torrentInfos = [];
 	var results = res.torrents;
 
 	if (results.length == 0) {
-		repeatSearch();
+		repeatSearch(options);
 	} else {
 		results = sortTorrents(order, infoField, results);
 		results.forEach(function(result) {
@@ -361,13 +361,13 @@ function strikeProcess(res, order, infoField) {
 	}
 }
 
-function tpbProcess(res, order, infoField) {
+function tpbProcess(res, order, infoField, options) {
 	var torrentHash = [];
 	var torrentInfos = [];
 	var results = res;
 
 	if (results.length == 0) {
-		repeatSearch();
+		repeatSearch(options);
 	} else {
 		results.forEach(function(result) {
 			torrentHash[result.name] = result.magnetLink;
@@ -400,28 +400,34 @@ function searchCommand(query, options) {
 		var order = orderObj.order;
 		var infoField = orderObj.infoField;
 
-		strike.search(query, category).then(function(res) {
-			strikeProcess(res, order, infoField);
+		strike.search(query, category).then(function(res, err) {
+			if (res.statuscode == 200) {
+				strikeProcess(res, order, infoField, options);
+			}
 		}).catch(function(err) {
-			console.log(err);
-			console.log('\nERROR: The Strike API is down right now. Trying The Pirate Bay...');
-			toTpbEnums();
-			var orderObj = convertOrder(orderBy);
-			var order = orderObj.order;
-			var infoField = orderObj.infoField;
-			category = toTpbCategory(category);
-			tpb.search(query, {
-				category: category,
-				orderBy: order
-			}, function(err, res) {
-				if (err) { 
-					console.log(err);
-					console.log("\nERROR: The Pirate Bay API is also down right now :(");
-				}
-				else {
-					tpbProcess(res, order, infoField);
-				}
-			});
+			if (err.status == 404) {
+				strikeProcess({torrents: []}, order, infoField, options);
+			} else {
+				console.log(res.status || res.statuscode);
+				console.log('\nERROR: The Strike API is returning an error right now. Trying The Pirate Bay...');
+				toTpbEnums();
+				var orderObj = convertOrder(orderBy);
+				var order = orderObj.order;
+				var infoField = orderObj.infoField;
+				category = toTpbCategory(category);
+				tpb.search(query, {
+					category: category,
+					orderBy: order
+				}, function(err, res) {
+					if (err) { 
+						console.log(err);
+						console.log("\nERROR: The Pirate Bay API is also down right now :(");
+					}
+					else {
+						tpbProcess(res, order, infoField, options);
+					}
+				});
+			}
 		});
 	} else if (db.getItem('vendor') == 'tpb') {
 		toTpbEnums();
@@ -442,7 +448,7 @@ function searchCommand(query, options) {
 				infoField = orderObj.infoField;
 				category = options.category;
 				strike.search(query, category).then(function(res) {
-					strikeProcess(res, order, infoField);
+					strikeProcess(res, order, infoField, options);
 				}).catch(function(err) {
 					console.log(err);
 					console.log('\nERROR: The Strike API is also down right now :(');
@@ -453,36 +459,41 @@ function searchCommand(query, options) {
 				order = orderObj.order;
 				infoField = orderObj.infoField;
 				category = toTpbCategory(category);
-				tpbProcess(res, order, infoField);
+				tpbProcess(res, order, infoField, options);
 			}
 		});
 	} else {
-		toStrikeEnums();
+		toTpbEnums();
 		var orderObj = convertOrder(orderBy);
 		var order = orderObj.order;
 		var infoField = orderObj.infoField;
-		strike.search(query, category).then(function(res) {
-			strikeProcess(res, order, infoField);
-		}).catch(function(err) {
-			console.log(err);
-			console.log('\nERROR: The Strike API is down right now. Trying The Pirate Bay...');
-			toTpbEnums();
-			var orderObj = convertOrder(orderBy);
-			var order = orderObj.order;
-			var infoField = orderObj.infoField;
-			category = toTpbCategory(category);
-			tpb.search(query, {
-				category: category,
-				orderBy: order
-			}, function(err, res) {
-				if (err) { 
+		category = toTpbCategory(category);
+		tpb.search(query, {
+			category: category,
+			orderBy: order
+		}, function(err, res) {
+			if (err) {
+				console.log(err);
+				console.log('\nERROR: The Pirate Bay API is down right now. Trying Strike...')
+				toStrikeEnums();
+				var orderObj = convertOrder(orderBy);
+				order = orderObj.order;
+				infoField = orderObj.infoField;
+				category = options.category;
+				strike.search(query, category).then(function(res) {
+					strikeProcess(res, order, infoField, options);
+				}).catch(function(err) {
 					console.log(err);
-					console.log("\nERROR: The Pirate Bay API is also down right now :(");
-				}
-				else {
-					tpbProcess(res, order, infoField);
-				}
-			});
+					console.log('\nERROR: The Strike API is also down right now :(');
+				});
+			} else { 
+				toTpbEnums();
+				var orderObj = convertOrder(orderBy);
+				order = orderObj.order;
+				infoField = orderObj.infoField;
+				category = toTpbCategory(category);
+				tpbProcess(res, order, infoField, options);
+			}
 		});
 	}
 }
