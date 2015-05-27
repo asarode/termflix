@@ -82,33 +82,26 @@ function playMagnet(args) {
 					name: 'fileName',
 					message: 'Which file from this torrent do you want to play?',
 					choices: fileNames
-				},
-				{
+				}
+			];
+
+			if (db.getItem("marathonMagnet") != magnet) {
+				questions.push({
 					type: 'confirm',
 					name: 'enableMarathon',
 					message: 'Enable marathon mode for these files?',
 					default: true
-				}
-			];
+				});
+			}
 
 			inquirer.prompt(questions, function(answers) {
 				var file = answers.fileName;
-				// var fileIndex = fileIndexHash[file];
 				var fileIndex = fileNames.indexOf(file);
 				args.push('--index=' + fileIndex);
 
 				if (answers.enableMarathon) {
 					enableMarathon(magnet);
 				}
-
-				// if (answers.addSubtitle) {
-				// 	fileHash[subtitleFileNames[0]].select();
-				// 	args.push('--subtitles \"/tmp/torrent-stream/%s\"', fileHash[subtitleFileNames[0]].path)
-				// }
-
-				// if (answers.wantsSubtitle) {
-				// 	var subtitleFile = answers.subtitleFile;
-				// }
 
 				// return args;
 				var cmd = spawn('peerflix', args);
