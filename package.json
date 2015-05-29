@@ -24,7 +24,7 @@
     "jsonfile": "^2.0.0",
     "moment": "^2.10.3",
     "strike-api": "^0.2.0",
-    "text-db": "^0.1.6",
+    "text-db": "^0.1.8",
     "thepiratebay": "^0.2.1",
     "torrent-stream": "^0.19.0"
   }
