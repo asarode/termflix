@@ -14,6 +14,7 @@ var jf			= require('jsonfile');
 var Promise		= require('bluebird');
 var moment 		= require('moment');
 var db 			= require('text-db')('storage');
+var pkg	 		= require('./package.json');
 
 // ==============================
 // VARIABLES
@@ -520,7 +521,7 @@ function vendorCommand(api) {
 // COMMANDS
 // ==============================
 program
-	.version('0.1.0');
+	.version(pkg.version);
 
 program
 	.command('play [magnet]')
