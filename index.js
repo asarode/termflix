@@ -138,18 +138,28 @@ function playMagnet(args) {
 					enableMarathon(magnet);
 				}
 
-				// return args;
-				var cmd = spawn('peerflix', args);
-				cmd.stdout.pipe(process.stdout);
-				cmd.stderr.pipe(process.stdout);
+				spawnPeerflix(args);
 			});
 		} else {
-			// return args;
-			var cmd = spawn('peerflix', args);
-			cmd.stdout.pipe(process.stdout);
-			cmd.stderr.pipe(process.stdout);
+			spawnPeerflix(args);
 		}
 	});
+}
+
+function spawnPeerflix(args) {
+	// return args;
+	var cmd = spawn('peerflix', args)
+		.on('error', function(err) {
+			if (err.code == 'ENOENT') {
+				var noPeerflixMsg = 'You probably don\'t have peerflix installed globally. Try doing `npm instal peerflix -g` and see if that fixes this error.';
+				throw new Error(noPeerflixMsg, err);
+			}
+			else {
+				throw err;
+			}
+		});
+	cmd.stdout.pipe(process.stdout);
+	cmd.stderr.pipe(process.stdout);
 }
 
 /*
