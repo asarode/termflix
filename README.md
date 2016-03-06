@@ -1,7 +1,7 @@
+# I'm not supporting this project anymore
+This project was something I wrote when I was first learning JavaScript. The code's gross. I don't even really use it anymore so I don't feel untangling this garbage or rewriting it. [torrentflix](https://github.com/ItzBlitz98/torrentflix) looks like a good alternative to termflix.
+
 # termflix
-
-[![Join the chat at https://gitter.im/asarode/termflix](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/asarode/termflix?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 Search and stream torrents from your command line.
 
 ![Demo](/../screenshots/termflix_demo.gif?raw=true)
