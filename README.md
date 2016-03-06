@@ -1,5 +1,5 @@
 # I'm not supporting this project anymore
-This project was something I wrote when I was first learning JavaScript. The code's gross. I don't even really use it anymore so I don't feel untangling this garbage or rewriting it. [torrentflix](https://github.com/ItzBlitz98/torrentflix) looks like a good alternative to termflix.
+This project was something I wrote when I was first learning JavaScript. I don't even use it anymore so I don't feel like untangling the garbage-quality code or rewriting it. [torrentflix](https://github.com/ItzBlitz98/torrentflix) looks like a good alternative to termflix.
 
 # termflix
 Search and stream torrents from your command line.
