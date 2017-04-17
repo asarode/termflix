@@ -9,7 +9,7 @@ Search and stream torrents from your command line.
 ## Requirements
 You'll need to have [VLC](http://www.videolan.org/vlc/index.html), [Node](https://nodejs.org/download/), and [peerflix](https://github.com/mafintosh/peerflix) installed on your machine. 
 
-##Installing
+## Installing
 Make sure you have [peerflix](https://github.com/mafintosh/peerflix) installed globally. After that it's just a simple `npm install -g termflix`. Boom.
 
 ## Usage
@@ -32,8 +32,8 @@ Termflix currently supports using two search APIs: [Strike](https://github.com/m
 
 When you have a stream open in VLC, don't terminate termflix in the command line because VLC will complain and you'll have to force quit it. You should stop the stream by quitting VLC instead. This issue should be solved soon. If you want to help fix this, send a pull request my way!
 
-##Shoutouts
+## Shoutouts
 Termflix stands on the back of some giants so I wanted to make sure they're mentioned here. [Peerflix](https://github.com/mafintosh/peerflix) and [torrent-stream](https://github.com/mafintosh/torrent-stream) are two amazing repos for doing anything related to streaming torrents. [Strike](https://getstrike.net/) is the default torrent searching API. I think you all know The Pirate Bay. Termflix uses an API wrapper to access their torrents.
 
-##Contact
+## Contact
 This is the first time I've written a node cli tool so let me know if there's some better ways to structure the code! Always open to a code review :) You can open an issue, send me a tweet ([@rjun07a](https://twitter.com/rjun07a)), or shoot me an email if you want to get in touch. I'll try to get back to you quickly.
